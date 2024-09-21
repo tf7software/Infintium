@@ -1,0 +1,77 @@
+body {
+  font-family: Arial, sans-serif;
+  text-align: center;
+  background-color: #f8f9fa;
+}
+
+.container {
+  margin-top: 100px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.logo {
+  width: 350px;
+  margin-bottom: 20px;
+}
+
+.search-container {
+  display: flex;
+  align-items: center;
+  position: relative; /* Keep this for absolute positioning of suggestions */
+}
+
+input[type="text"] {
+  width: 60%;
+  max-width: 600px;
+  padding: 10px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  margin-right: 10px;
+}
+
+button {
+  padding: 10px 20px;
+  font-size: 16px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #0056b3;
+}
+
+/* Adjusted positioning of suggestions list */
+.suggestions-list {
+  list-style-type: none;
+  padding: 0;
+  margin: 5px 0 0 0; /* Margin top to create space below the text */
+  border: 1px solid #ccc;
+  max-width: 400px;
+  background-color: white;
+  position: relative; /* Change to relative */
+  z-index: 1000;
+  width: 60%; /* Match input width */
+  display: none; /* Hide by default */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2); /* Optional: add shadow for better visibility */
+}
+
+.suggestion-item {
+  padding: 10px;
+  cursor: pointer;
+}
+
+.suggestion-item:hover {
+  background-color: #f1f1f1;
+}
+
+/* Show suggestions when there are items */
+#searchInput:focus + .suggestions-list,
+.suggestions-list:has(.suggestion-item) {
+  display: block; /* Show suggestions when there are items */
+}

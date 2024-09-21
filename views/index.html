@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/css/styles.css">
+  <title>Infintium</title>
+  <link rel="icon" type="image/x-icon" href="/favicon.png">
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <img src="/logo.png" alt="Infintium" class="logo">
+    <form id="searchForm" method="POST" action="/search" class="search-container">
+      <input type="text" name="query" id="searchInput" placeholder="Search..." autocomplete="off">
+      <button type="submit">Search</button>
+    </form>
+    <ul id="suggestions" class="suggestions-list"></ul> <!-- Moved suggestions list below the form -->
+  </div>
+  <p>Infinite Searches, Infinite Knowledge.</p>
+
+  <script>
+    $(document).ready(function() {
+      $('#searchInput').on('input', function() {
+        const query = $(this).val();
+
+        if (query.length > 0) {
+          $.ajax({
+            url: '/suggest',
+            data: { q: query },
+            success: function(suggestions) {
+              $('#suggestions').empty();
+              if (suggestions.length > 0) {
+                suggestions.forEach(function(suggestion) {
+                  $('#suggestions').append(`<li class="suggestion-item">${suggestion}</li>`);
+                });
+              }
+            }
+          });
+        } else {
+          $('#suggestions').empty();
+        }
+      });
+
+      // Handle suggestion click
+      $('#suggestions').on('click', '.suggestion-item', function() {
+        const selectedSuggestion = $(this).text();
+        $('#searchInput').val(selectedSuggestion);
+        $('#searchForm').submit();
+      });
+    });
+  </script>
+</body>
+</html>

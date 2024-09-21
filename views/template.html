@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/css/styles.css">
+  <title>{{title}}</title> <!-- Title of the page -->
+</head>
+<body>
+  <div class="article-container">
+    <h1>{{title}}</h1> <!-- Header of the article, also replaced by the query -->
+    <div class="content">
+      {{content}} <!-- AI-generated content goes here -->
+    </div>
+    <div class="report-incorrect">
+      <a href="mailto:rhenrywarren@gmail.com?subject=Infintium%20-%20Incorrect%20info%20{{title}}" class="btn">Report Incorrect</a>
+    </div>
+    <div class="search-again">
+      <a href="/" class="btn">Search Something Else</a>
+    </div>
+  </div>
+</body>
+</html>
