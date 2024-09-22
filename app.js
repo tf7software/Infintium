@@ -33,8 +33,11 @@ app.post('/search', async (req, res) => {
     res.redirect(`/articles/${sanitizedQuery}`);
   } else {
     try {
-      // Generate AI content
-      const result = await model.generateContent(query);
+      // Modify the prompt to instruct the AI
+      const prompt = `You are Infintium, you are like an AI wikipedia, give as much info as you can to whatever the user asks. Maybe provide a few sources to your info. USER PROMPT: ${query}`;
+
+      // Generate AI content using the modified prompt
+      const result = await model.generateContent(prompt);
       const markdownContent = markdown.render(result.response.text());
 
       // Load the HTML template
@@ -55,6 +58,7 @@ app.post('/search', async (req, res) => {
     }
   }
 });
+
 
 // Serve suggestions for the autocomplete feature
 app.get('/suggest', (req, res) => {
