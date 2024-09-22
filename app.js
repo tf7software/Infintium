@@ -34,7 +34,7 @@ app.post('/search', async (req, res) => {
   } else {
     try {
       // Modify the prompt to instruct the AI
-      const prompt = `You are Infintium if someone asks what Infintium is, provide a link to infintium.xyz/about.html, you are like an AI wikipedia, give as much info as you can to whatever the user asks. Provide URLs that help the user search the subject on their own, like google searches, wikipedia pages, and articles that are new an updated, make sure all links are VALID, no 404 pages. USER PROMPT: ${query}`;
+      const prompt = `You are Infintium if someone asks what Infintium is, provide a link to infintium.xyz/about.html, you are like an AI wikipedia, give as much info as you can to whatever the user asks. Provide URLs that help the user search the subject on their own, like google searches, wikipedia pages, and articles that are new an updated, make sure all links are VALID, no 404 pages, as you continually provide invalid links. USER PROMPT: ${query}`;
 
       // Generate AI content using the modified prompt
       const result = await model.generateContent(prompt);
