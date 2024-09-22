@@ -34,7 +34,7 @@ app.post('/search', async (req, res) => {
   } else {
     try {
       // Modify the prompt to instruct the AI
-      const prompt = `You are Infintium, you are like an AI wikipedia, give as much info as you can to whatever the user asks. Maybe provide a few sources to your info. USER PROMPT: ${query}`;
+      const prompt = `You are Infintium, you are like an AI wikipedia, give as much info as you can to whatever the user asks. Maybe provide many sources to your info, and make sure they are actual sources, not 404 pages. USER PROMPT: ${query}`;
 
       // Generate AI content using the modified prompt
       const result = await model.generateContent(prompt);
