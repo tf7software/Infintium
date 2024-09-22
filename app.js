@@ -22,6 +22,30 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'views/index.html'));
 });
 
+// Function to delete all files in the "articles" directory
+const deleteArticlesFolder = () => {
+  const articlesDir = path.join(__dirname, 'public/articles');
+  fs.readdir(articlesDir, (err, files) => {
+    if (err) {
+      console.error(`Error reading the articles directory: ${err}`);
+      return;
+    }
+    files.forEach((file) => {
+      const filePath = path.join(articlesDir, file);
+      fs.unlink(filePath, (err) => {
+        if (err) {
+          console.error(`Error deleting file ${file}: ${err}`);
+        } else {
+          console.log(`Deleted file: ${file}`);
+        }
+      });
+    });
+  });
+};
+
+// Schedule the deleteArticlesFolder function to run every 24 hours
+setInterval(deleteArticlesFolder, 24 * 60 * 60 * 1000); // 24 hours in milliseconds
+
 // Handle search form submissions
 app.post('/search', async (req, res) => {
   const query = req.body.query;
@@ -58,7 +82,6 @@ app.post('/search', async (req, res) => {
     }
   }
 });
-
 
 // Serve suggestions for the autocomplete feature
 app.get('/suggest', (req, res) => {
