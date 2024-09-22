@@ -1,4 +1,4 @@
-![Infintium logo.](https://github.com/tf7software/Infintium/blob/28e0b823ece38fed24f6ce5d81a58b9724f563f5/public/logo.png)
+![Infintium logo.](https://github.com/tf7software/Infintium/blob/3a2026fcbbb1dd10eab389a0827533c1c1eb27ec/Gitimage.png)
 
 # Infintium
 ## Infinite Searches, Infinite Learning.
