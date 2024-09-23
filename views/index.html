@@ -19,6 +19,31 @@
       <input type="text" name="query" id="searchInput" placeholder="Search..." autocomplete="off">
       <button type="submit">Search</button>
     </form>
+    
+    <select id="mathSymbolsDropdown">
+      <option value="">Math Symbols</option>
+      <option value="+">+</option>
+      <option value="-">-</option>
+      <option value="*">*</option>
+      <option value="/">/</option>
+      <option value="(">(</option>
+      <option value=")">)</option>
+      <option value="x">x</option>
+      <option value="y">y</option>
+      <option value="^">^</option>
+      <option value="=">=</option>
+      <option value="sqrt(">√</option>
+      <option value="^2">x²</option>
+      <option value="pi">π</option>
+      <option value="e">e</option>
+      <option value="log(">log</option>
+      <option value="sin(">sin</option>
+      <option value="cos(">cos</option>
+      <option value="tan(">tan</option>
+      <option value="ln(">ln</option>
+      <option value="x^y">x^y</option>
+    </select>
+    
     <ul id="suggestions" class="suggestions-list"></ul> <!-- Moved suggestions list below the form -->
   </div>
   <p>Infinite Searches, Infinite Learning.</p>
@@ -26,8 +51,22 @@
   <a href="about.html">About</a>
   <p style="color:Silver;">P.S. Also try entering algebra problems for quick solving!</p>
 
-
   <script>
+    // Append selected math symbol to the search input field
+    function appendSymbol(symbol) {
+      const input = document.getElementById('searchInput');
+      input.value += symbol;
+    }
+
+    // Handle dropdown change event to append selected symbol
+    document.getElementById('mathSymbolsDropdown').addEventListener('change', function() {
+      const selectedSymbol = this.value;
+      if (selectedSymbol) {
+        appendSymbol(selectedSymbol);
+        this.value = ""; // Reset the dropdown after selection
+      }
+    });
+
     $(document).ready(function() {
       $('#searchInput').on('input', function() {
         const query = $(this).val();
