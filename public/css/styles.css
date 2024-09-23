@@ -78,11 +78,11 @@ button:hover {
 
 /* New styles for the Math Symbols dropdown */
 #mathSymbolsDropdown {
-  padding: 10px;
-  font-size: 16px;
+  padding: 5px;
+  font-size: 9px;
   border: 1px solid #ccc;
   border-radius: 5px;
-  margin-left: 10px;
+  margin-left: 5px;
   background-color: white;
   cursor: pointer;
 }
@@ -93,6 +93,6 @@ button:hover {
 }
 
 #mathSymbolsDropdown option {
-  padding: 10px;
+  padding: 5px;
   font-size: 9px;
 }
