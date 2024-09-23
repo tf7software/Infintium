@@ -3,6 +3,8 @@ const fs = require('fs');
 const path = require('path');
 const markdown = require('markdown-it')();
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const axios = require('axios'); // Import axios
+const cheerio = require('cheerio'); // Import cheerio
 require('dotenv').config();
 
 const app = express();
@@ -46,6 +48,31 @@ const deleteArticlesFolder = () => {
 // Schedule the deleteArticlesFolder function to run every 24 hours
 setInterval(deleteArticlesFolder, 24 * 60 * 60 * 1000); // 24 hours in milliseconds
 
+// Function to scrape search results from Google
+const scrapeGoogleSearch = async (query) => {
+  const formattedQuery = encodeURIComponent(query);
+  const url = `https://www.google.com/search?q=${formattedQuery}`;
+
+  try {
+    const { data } = await axios.get(url);
+    const $ = cheerio.load(data);
+    const links = [];
+
+    $('a').each((index, element) => {
+      const link = $(element).attr('href');
+      if (link && link.startsWith('/url?q=')) {
+        const actualLink = link.split('/url?q=')[1].split('&')[0];
+        links.push(decodeURIComponent(actualLink));
+      }
+    });
+
+    return links.slice(0, 5).join(', '); // Return the first 5 links
+  } catch (error) {
+    console.error("Error scraping Google:", error);
+    return "No additional information found.";
+  }
+};
+
 // Handle search form submissions
 app.post('/search', async (req, res) => {
   const query = req.body.query;
@@ -57,8 +84,11 @@ app.post('/search', async (req, res) => {
     res.redirect(`/articles/${sanitizedQuery}`);
   } else {
     try {
+      // Scrape information before generating the content
+      const lookupResult = await scrapeGoogleSearch(query);
+
       // Modify the prompt to instruct the AI
-      const prompt = `You are Infintium if someone asks what Infintium is, provide a link to infintium.xyz/about.html (and for queries that have "Infintium" in the title, provide no other info besides the about page libk). you are like an AI wikipedia, give as much info as you can to whatever the user asks. Provide URLs that help the user search the subject on their own, like google searches (Like: https://www.google.com/search?q=Whatever+The+User+Wants+To+Know), and wikipedia pages. Also don't provide links if the prompt is an algebra/math problem or equation. USER PROMPT: ${query}`;
+      const prompt = `You are Infintium. ${lookupResult} USER PROMPT: ${query}`;
 
       // Generate AI content using the modified prompt
       const result = await model.generateContent(prompt);
