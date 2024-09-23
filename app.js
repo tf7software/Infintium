@@ -5,11 +5,14 @@ const markdown = require('markdown-it')();
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const axios = require('axios'); // Import axios
 const cheerio = require('cheerio'); // Import cheerio
+const rateLimit = require('express-rate-limit'); // Import rate limit
+const validator = require('validator'); // Import validator for security
 require('dotenv').config();
 
 const app = express();
 const PORT = 80;
 
+// Initialize Google Generative AI
 const genAI = new GoogleGenerativeAI(process.env.API_KEY);
 const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
@@ -23,6 +26,9 @@ app.use(express.urlencoded({ extended: true }));
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'views/index.html'));
 });
+
+// In-memory cache for search results
+const searchCache = new Map();
 
 // Function to delete all files in the "articles" directory
 const deleteArticlesFolder = () => {
@@ -48,8 +54,18 @@ const deleteArticlesFolder = () => {
 // Schedule the deleteArticlesFolder function to run every 24 hours
 setInterval(deleteArticlesFolder, 24 * 60 * 60 * 1000); // 24 hours in milliseconds
 
+// Function to sanitize scraped data
+const sanitizeScrapedData = (text) => {
+  return text.replace(/[\n\r]/g, ' ').trim(); // Remove newlines, trim whitespace
+};
+
 // Function to scrape search results from Google
 const scrapeGoogleSearch = async (query) => {
+  if (searchCache.has(query)) {
+    console.log("Serving from cache");
+    return searchCache.get(query);
+  }
+
   const formattedQuery = encodeURIComponent(query);
   const url = `https://www.google.com/search?q=${formattedQuery}`;
 
@@ -66,49 +82,72 @@ const scrapeGoogleSearch = async (query) => {
       }
     });
 
-    return links.slice(0, 5).join(', '); // Return the first 5 links
+    const sanitizedLinks = links.slice(0, 5).map(sanitizeScrapedData).join(', ');
+
+    // Cache the result for 24 hours
+    searchCache.set(query, sanitizedLinks);
+    setTimeout(() => searchCache.delete(query), 24 * 60 * 60 * 1000); // Invalidate cache after 24 hours
+
+    return sanitizedLinks;
   } catch (error) {
     console.error("Error scraping Google:", error);
     return "No additional information found.";
   }
 };
 
+// Rate limiter to prevent too many requests
+const limiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute window
+  max: 10, // limit each IP to 10 requests per minute
+  message: "Too many requests, please try again later.",
+});
+
 // Handle search form submissions
-app.post('/search', async (req, res) => {
-  const query = req.body.query;
+app.post('/search', limiter, async (req, res) => {
+  let query = req.body.query;
+
+  // Sanitize user input using validator
+  query = validator.escape(query);
+
   const sanitizedQuery = query.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').trim().replace(/\s+/g, '-');
   const filePath = path.join(__dirname, 'public/articles', `${sanitizedQuery}.html`);
 
   // Check if the article already exists
   if (fs.existsSync(filePath)) {
+    return res.redirect(`/articles/${sanitizedQuery}`);
+  }
+
+  try {
+    // Scrape information before generating the content
+    const lookupResult = await scrapeGoogleSearch(query);
+
+    // Modify the prompt to instruct the AI
+    const prompt = `You are Infintium. You are have two purposes. If the user prompt is a math problem, solve it until it is COMPLETELY simplefied. If it is a question anser it with sources from the pages list. If it is an item, such as toaster, or a song, or anything that is a statement, act like wikipedia and provide as much info as possible, and add the sources from the pages list. PAGES LIST: ${lookupResult} USER PROMPT: ${query}`;
+
+    // Generate AI content using the modified prompt
+    const result = await model.generateContent(prompt);
+    const markdownContent = markdown.render(result.response.text());
+
+    // Load the HTML template
+    let articleHtml = fs.readFileSync(path.join(__dirname, 'views/template.html'), 'utf8');
+
+    // Replace placeholders with the search query and AI content
+    articleHtml = articleHtml.replace(/{{title}}/g, query);
+    articleHtml = articleHtml.replace(/{{content}}/g, markdownContent);
+
+    // Save the generated HTML file
+    fs.writeFileSync(filePath, articleHtml);
+
+    // Redirect to the new article page
     res.redirect(`/articles/${sanitizedQuery}`);
-  } else {
-    try {
-      // Scrape information before generating the content
-      const lookupResult = await scrapeGoogleSearch(query);
+  } catch (error) {
+    console.error("Error during the search process:", error.message);
 
-      // Modify the prompt to instruct the AI
-      const prompt = `You are Infintium. ${lookupResult} USER PROMPT: ${query}`;
-
-      // Generate AI content using the modified prompt
-      const result = await model.generateContent(prompt);
-      const markdownContent = markdown.render(result.response.text());
-
-      // Load the HTML template
-      let articleHtml = fs.readFileSync(path.join(__dirname, 'views/template.html'), 'utf8');
-
-      // Replace placeholders with the search query and AI content
-      articleHtml = articleHtml.replace(/{{title}}/g, query);
-      articleHtml = articleHtml.replace(/{{content}}/g, markdownContent);
-
-      // Save the generated HTML file
-      fs.writeFileSync(filePath, articleHtml);
-
-      // Redirect to the new article page
-      res.redirect(`/articles/${sanitizedQuery}`);
-    } catch (error) {
-      console.error("Error generating content:", error);
-      res.status(500).send("Something went wrong. Please try again later.");
+    // Provide better feedback based on the error type
+    if (error.response) {
+      res.status(500).send("Failed to generate content, please try again later.");
+    } else {
+      res.status(500).send("An unexpected error occurred.");
     }
   }
 });
