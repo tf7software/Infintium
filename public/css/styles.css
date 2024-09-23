@@ -1,3 +1,4 @@
+/* Existing styles */
 body {
   font-family: Arial, sans-serif;
   text-align: center;
@@ -19,7 +20,7 @@ body {
 .search-container {
   display: flex;
   align-items: center;
-  position: relative; /* Keep this for absolute positioning of suggestions */
+  position: relative;
 }
 
 input[type="text"] {
@@ -46,19 +47,18 @@ button:hover {
   background-color: #0056b3;
 }
 
-/* Adjusted positioning of suggestions list */
 .suggestions-list {
   list-style-type: none;
   padding: 0;
-  margin: 5px 0 0 0; /* Margin top to create space below the text */
+  margin: 5px 0 0 0;
   border: 1px solid #ccc;
   max-width: 400px;
   background-color: white;
-  position: relative; /* Change to relative */
+  position: relative;
   z-index: 1000;
-  width: 60%; /* Match input width */
-  display: none; /* Hide by default */
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2); /* Optional: add shadow for better visibility */
+  width: 60%;
+  display: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .suggestion-item {
@@ -73,5 +73,26 @@ button:hover {
 /* Show suggestions when there are items */
 #searchInput:focus + .suggestions-list,
 .suggestions-list:has(.suggestion-item) {
-  display: block; /* Show suggestions when there are items */
+  display: block;
+}
+
+/* New styles for the Math Symbols dropdown */
+#mathSymbolsDropdown {
+  padding: 10px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  margin-left: 10px;
+  background-color: white;
+  cursor: pointer;
+}
+
+#mathSymbolsDropdown:focus {
+  outline: none;
+  border-color: #007bff;
+}
+
+#mathSymbolsDropdown option {
+  padding: 10px;
+  font-size: 16px;
 }
