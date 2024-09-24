@@ -70,19 +70,31 @@ const scrapeGoogleSearch = async (query) => {
   const url = `https://www.google.com/search?q=${formattedQuery}`;
 
   try {
-    const { data } = await axios.get(url);
+    const { data } = await axios.get(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.121 Safari/537.36'
+      }
+    });
+
     const $ = cheerio.load(data);
     const links = [];
 
     $('a').each((index, element) => {
       const link = $(element).attr('href');
-      if (link && link.startsWith('/url?q=')) {
+      if (link && link.startsWith('/url?q=https://')) {
         const actualLink = link.split('/url?q=')[1].split('&')[0];
-        links.push(decodeURIComponent(actualLink));
+        const decodedLink = decodeURIComponent(actualLink);
+        if (decodedLink.startsWith('https://')) {
+          links.push(decodedLink);
+        }
+      }
+      // Stop after collecting 10 URLs
+      if (links.length >= 10) {
+        return false; // Break the loop when we have 10 links
       }
     });
 
-    const sanitizedLinks = links.slice(0, 5).map(sanitizeScrapedData).join(', ');
+    const sanitizedLinks = links.map(sanitizeScrapedData).join(', ');
 
     // Cache the result for 24 hours
     searchCache.set(query, sanitizedLinks);
@@ -94,6 +106,7 @@ const scrapeGoogleSearch = async (query) => {
     return "No additional information found.";
   }
 };
+
 
 // Rate limiter to prevent too many requests
 const limiter = rateLimit({
