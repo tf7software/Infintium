@@ -14,7 +14,7 @@ const PORT = 80;
 
 // Initialize Google Generative AI
 const genAI = new GoogleGenerativeAI(process.env.API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
 // Serve static files from the 'public' directory
 app.use(express.static('public'));
