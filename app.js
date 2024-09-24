@@ -59,38 +59,27 @@ const sanitizeScrapedData = (text) => {
   return text.replace(/[\n\r]/g, ' ').trim(); // Remove newlines, trim whitespace
 };
 
-// Function to scrape search results from DuckDuckGo
-const scrapeDuckDuckGoSearch = async (query) => {
+// Function to scrape search results from SerpAPI
+const scrapeSerpApiSearch = async (query) => {
   if (searchCache.has(query)) {
     console.log("Serving from cache");
     return searchCache.get(query);
   }
 
+  const apiKey = process.env.SERPAPI_API_KEY; // Add your SerpAPI key in the .env file
   const formattedQuery = encodeURIComponent(query);
-  const url = `https://duckduckgo.com/?q=${formattedQuery}`;
+  const url = `https://serpapi.com/search.json?q=${formattedQuery}&api_key=${apiKey}`;
 
   try {
-    const { data } = await axios.get(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.121 Safari/537.36'
-      }
-    });
+    const { data } = await axios.get(url);
 
-    const $ = cheerio.load(data);
-    const links = [];
+    // Check if the response contains the organic_results
+    if (!data.organic_results || !Array.isArray(data.organic_results)) {
+      console.error("No organic results found in the response.");
+      return [];
+    }
 
-    // Adjust the selector to target DuckDuckGo's result links
-    $('.result__a').each((index, element) => {
-      const link = $(element).attr('href');
-      if (link && link.startsWith('http')) {
-        links.push(link);
-      }
-
-      // Stop after collecting 10 URLs
-      if (links.length >= 10) {
-        return false; // Break the loop when we have 10 links
-      }
-    });
+    const links = data.organic_results.map(result => result.link).filter(link => link && link.startsWith('http'));
 
     // Debug log to check the URLs collected
     console.log("Collected URLs:", links);
@@ -101,7 +90,7 @@ const scrapeDuckDuckGoSearch = async (query) => {
 
     return links; // Return an array of links
   } catch (error) {
-    console.error("Error scraping DuckDuckGo:", error);
+    console.error("Error scraping SerpAPI:", error);
     return []; // Return an empty array in case of error
   }
 };
@@ -129,14 +118,14 @@ app.post('/search', limiter, async (req, res) => {
   }
 
   try {
-    // Scrape information from DuckDuckGo
-    const lookupResult = await scrapeDuckDuckGoSearch(query);
+    // Scrape information from SerpAPI
+    const lookupResult = await scrapeSerpApiSearch(query);
     console.log("Scraped URLs:", lookupResult); // Log the scraped URLs
 
     // Ensure lookupResult is an array
     if (!Array.isArray(lookupResult) || lookupResult.length === 0) {
       // Provide an error response and include a message
-      const errorMsg = "No results found from DuckDuckGo. Please try a different query.";
+      const errorMsg = "No results found from SerpAPI. Please try a different query.";
       const articleHtml = fs.readFileSync(path.join(__dirname, 'views/template.html'), 'utf8')
         .replace(/{{title}}/g, query)
         .replace(/{{content}}/g, "No content generated as there were no URLs.")
