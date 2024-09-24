@@ -143,7 +143,7 @@ app.post('/search', limiter, async (req, res) => {
         }
 
         // Generate AI content using the modified prompt
-        const prompt = `You are Infintium... USER PROMPT: ${query}`;
+        const prompt = `You are Infintium. You have two purposes. If the user prompt is a math problem, solve it until it is COMPLETELY simplified. If it is a question, answer it with your own knowledge. If it is an item, such as a toaster, song, or anything that is a statement, act like Wikipedia and provide as much information as possible. USER PROMPT: ${query}`;
         const result = await model.generateContent(prompt);
         const markdownContent = markdown.render(result.response.text());
 
