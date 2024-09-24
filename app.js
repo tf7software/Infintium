@@ -59,15 +59,15 @@ const sanitizeScrapedData = (text) => {
   return text.replace(/[\n\r]/g, ' ').trim(); // Remove newlines, trim whitespace
 };
 
-// Function to scrape search results from Google
-const scrapeGoogleSearch = async (query) => {
+// Function to scrape search results from DuckDuckGo
+const scrapeDuckDuckGoSearch = async (query) => {
   if (searchCache.has(query)) {
     console.log("Serving from cache");
     return searchCache.get(query);
   }
 
   const formattedQuery = encodeURIComponent(query);
-  const url = `https://www.google.com/search?q=${formattedQuery}`;
+  const url = `https://duckduckgo.com/?q=${formattedQuery}`;
 
   try {
     const { data } = await axios.get(url, {
@@ -79,16 +79,11 @@ const scrapeGoogleSearch = async (query) => {
     const $ = cheerio.load(data);
     const links = [];
 
-    $('a').each((index, element) => {
+    // Adjust the selector to target DuckDuckGo's result links
+    $('.result__a').each((index, element) => {
       const link = $(element).attr('href');
-      
-      // Find classic Google links
-      if (link && link.startsWith('/url?q=')) {
-        const actualLink = link.split('/url?q=')[1].split('&')[0];
-        const decodedLink = decodeURIComponent(actualLink);
-        if (decodedLink.startsWith('http')) {
-          links.push(decodedLink);
-        }
+      if (link && link.startsWith('http')) {
+        links.push(link);
       }
 
       // Stop after collecting 10 URLs
@@ -106,7 +101,7 @@ const scrapeGoogleSearch = async (query) => {
 
     return links; // Return an array of links
   } catch (error) {
-    console.error("Error scraping Google:", error);
+    console.error("Error scraping DuckDuckGo:", error);
     return []; // Return an empty array in case of error
   }
 };
@@ -134,14 +129,14 @@ app.post('/search', limiter, async (req, res) => {
   }
 
   try {
-    // Scrape information before generating the content
-    const lookupResult = await scrapeGoogleSearch(query);
+    // Scrape information from DuckDuckGo
+    const lookupResult = await scrapeDuckDuckGoSearch(query);
     console.log("Scraped URLs:", lookupResult); // Log the scraped URLs
 
     // Ensure lookupResult is an array
     if (!Array.isArray(lookupResult) || lookupResult.length === 0) {
       // Provide an error response and include a message
-      const errorMsg = "No results found from Google. Please try a different query.";
+      const errorMsg = "No results found from DuckDuckGo. Please try a different query.";
       const articleHtml = fs.readFileSync(path.join(__dirname, 'views/template.html'), 'utf8')
         .replace(/{{title}}/g, query)
         .replace(/{{content}}/g, "No content generated as there were no URLs.")
