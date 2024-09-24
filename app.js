@@ -82,14 +82,13 @@ const scrapeGoogleSearch = async (query) => {
     $('a').each((index, element) => {
       const link = $(element).attr('href');
       
-      if (link && link.startsWith('/url?q=https://')) {
+      // Find classic Google links
+      if (link && link.startsWith('/url?q=')) {
         const actualLink = link.split('/url?q=')[1].split('&')[0];
         const decodedLink = decodeURIComponent(actualLink);
-        if (decodedLink.startsWith('https://')) {
+        if (decodedLink.startsWith('http')) {
           links.push(decodedLink);
         }
-      } else if (link && link.startsWith('https://')) {
-        links.push(link);
       }
 
       // Stop after collecting 10 URLs
