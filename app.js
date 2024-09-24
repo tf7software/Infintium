@@ -68,7 +68,7 @@ const scrapeSerpApiSearch = async (query) => {
 
   const apiKey = process.env.SERPAPI_API_KEY; // Add your SerpAPI key in the .env file
   const formattedQuery = encodeURIComponent(query);
-  const url = `https://serpapi.com/search.json?q=${formattedQuery}&api_key=${apiKey}`;
+  const url = `https://serpapi.com/search.json?q=${formattedQuery}`;
 
   try {
     const { data } = await axios.get(url);
