@@ -122,7 +122,7 @@ app.post('/search', limiter, async (req, res) => {
     const lookupResult = await scrapeGoogleSearch(query);
 
     // Modify the prompt to instruct the AI
-    const prompt = `You are Infintium. You are have two purposes. If the user prompt is a math problem, solve it until it is COMPLETELY simplefied. If it is a question anwser it with your own knowlegde and provide sources from the pages list so the user can continue his/her study of the subject. If it is an item, such as toaster, or a song, or anything that is a statement, act like wikipedia and provide as much info as possible, and add the sources from the pages list. PAGES LIST: ${lookupResult} USER PROMPT: ${query}`;
+    const prompt = `You are Infintium. You are have two purposes. If the user prompt is a math problem, solve it until it is COMPLETELY simplefied. If it is a question anwser it with your own knowlegde and provide sources (Just URLs, you don't have to access any links) from the pages list so the user can continue his/her study of the subject. If it is an item, such as toaster, or a song, or anything that is a statement, act like wikipedia and provide as much info as possible, and add the sources from the pages list. PAGES LIST: ${lookupResult} USER PROMPT: ${query}`;
 
     // Generate AI content using the modified prompt
     const result = await model.generateContent(prompt);
