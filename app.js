@@ -81,6 +81,8 @@ const scrapeGoogleSearch = async (query) => {
 
     $('a').each((index, element) => {
       const link = $(element).attr('href');
+      
+      // Handle /url?q=https:// links
       if (link && link.startsWith('/url?q=https://')) {
         const actualLink = link.split('/url?q=')[1].split('&')[0];
         const decodedLink = decodeURIComponent(actualLink);
@@ -88,6 +90,12 @@ const scrapeGoogleSearch = async (query) => {
           links.push(decodedLink);
         }
       }
+
+      // Handle direct https:// links
+      else if (link && link.startsWith('https://')) {
+        links.push(link);
+      }
+
       // Stop after collecting 10 URLs
       if (links.length >= 10) {
         return false; // Break the loop when we have 10 links
@@ -135,7 +143,7 @@ app.post('/search', limiter, async (req, res) => {
     const lookupResult = await scrapeGoogleSearch(query);
 
     // Modify the prompt to instruct the AI
-    const prompt = `You are Infintium. You are have two purposes. If the user prompt is a math problem, solve it until it is COMPLETELY simplefied. If it is a question anwser it with your own knowlegde and provide the URLs (Just URLs, you don't have to access any links) from the pages list so the user can continue his/her study of the subject. If it is an item, such as toaster, or a song, or anything that is a statement, act like wikipedia and provide as much info as possible, and add the sources from the pages list. PAGES LIST: ${lookupResult} USER PROMPT: ${query}`;
+    const prompt = `You are Infintium. You have two purposes. If the user prompt is a math problem, solve it until it is COMPLETELY simplified. If it is a question, answer it with your own knowledge and provide the URLs (just URLs, you don't have to access any links) from the pages list so the user can continue their study of the subject. If it is an item, such as a toaster, song, or anything that is a statement, act like Wikipedia and provide as much info as possible, and add the sources from the pages list. PAGES LIST: ${lookupResult} USER PROMPT: ${query}`;
 
     // Generate AI content using the modified prompt
     const result = await model.generateContent(prompt);
