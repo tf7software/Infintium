@@ -9,24 +9,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="/css/styles.css">
   <link rel="icon" type="image/x-icon" href="/favicon.png">
-  <title>{{title}}</title> <!-- Title of the page -->
+  <title>{{title}}</title>
 </head>
 <body>
-  <div class="article-container">
-    <h1>{{title}}</h1> <!-- Header of the article, also replaced by the query -->
-    <div class="content">
-      {{content}} <!-- AI-generated content goes here -->
-    </div>
+  <header>
+    <h1>{{title}}</h1>
+  </header>
+  <main>
+    <div class="content">{{content}}</div>
     <h2>References</h2>
-    <ul id="urls">
-      {{urls}} <!-- Placeholder for the URLs -->
+    <ul>
+      {{urls}}
     </ul>
-    <div class="report-incorrect">
-      <a href="mailto:rhenrywarren@gmail.com?subject=Infintium%20-%20Incorrect%20info%20{{title}}" class="btn">Report Incorrect</a>
-    </div>
-    <div class="search-again">
-      <a href="/" class="btn">Search Something Else</a>
-    </div>
-  </div>
+  </main>
+  <footer>
+    <p>© 2024 Infintium. All rights reserved.</p>
+  </footer>
 </body>
 </html>
