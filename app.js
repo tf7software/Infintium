@@ -3,10 +3,10 @@ const fs = require('fs');
 const path = require('path');
 const markdown = require('markdown-it')();
 const { GoogleGenerativeAI } = require('@google/generative-ai');
-const axios = require('axios'); // Import axios
-const cheerio = require('cheerio'); // Import cheerio
-const rateLimit = require('express-rate-limit'); // Import rate limit
-const validator = require('validator'); // Import validator for security
+const axios = require('axios');
+const cheerio = require('cheerio');
+const rateLimit = require('express-rate-limit');
+const validator = require('validator');
 require('dotenv').config();
 
 const app = express();
@@ -82,17 +82,13 @@ const scrapeGoogleSearch = async (query) => {
     $('a').each((index, element) => {
       const link = $(element).attr('href');
       
-      // Handle /url?q=https:// links
       if (link && link.startsWith('/url?q=https://')) {
         const actualLink = link.split('/url?q=')[1].split('&')[0];
         const decodedLink = decodeURIComponent(actualLink);
         if (decodedLink.startsWith('https://')) {
           links.push(decodedLink);
         }
-      }
-
-      // Handle direct https:// links
-      else if (link && link.startsWith('https://')) {
+      } else if (link && link.startsWith('https://')) {
         links.push(link);
       }
 
@@ -102,19 +98,16 @@ const scrapeGoogleSearch = async (query) => {
       }
     });
 
-    const sanitizedLinks = links.map(sanitizeScrapedData).join(', ');
-
     // Cache the result for 24 hours
-    searchCache.set(query, sanitizedLinks);
+    searchCache.set(query, links); // Store the actual links
     setTimeout(() => searchCache.delete(query), 24 * 60 * 60 * 1000); // Invalidate cache after 24 hours
 
-    return sanitizedLinks;
+    return links; // Return an array of links
   } catch (error) {
     console.error("Error scraping Google:", error);
-    return "No additional information found.";
+    return []; // Return an empty array in case of error
   }
 };
-
 
 // Rate limiter to prevent too many requests
 const limiter = rateLimit({
@@ -125,48 +118,56 @@ const limiter = rateLimit({
 
 // Handle search form submissions
 app.post('/search', limiter, async (req, res) => {
-    let query = req.body.query;
-    query = validator.escape(query.trim());
-    const sanitizedQuery = query.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').trim().replace(/\s+/g, '-');
-    const filePath = path.join(__dirname, 'public/articles', `${sanitizedQuery}.html`);
+  let query = req.body.query;
 
-    if (fs.existsSync(filePath)) {
-        return res.redirect(`/articles/${sanitizedQuery}`);
+  // Sanitize user input using validator
+  query = validator.escape(query);
+
+  const sanitizedQuery = query.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').trim().replace(/\s+/g, '-');
+  const filePath = path.join(__dirname, 'public/articles', `${sanitizedQuery}.html`);
+
+  // Check if the article already exists
+  if (fs.existsSync(filePath)) {
+    return res.redirect(`/articles/${sanitizedQuery}`);
+  }
+
+  try {
+    // Scrape information before generating the content
+    const lookupResult = await scrapeGoogleSearch(query);
+    console.log("Scraped URLs:", lookupResult);
+
+    // Ensure lookupResult is an array
+    if (!Array.isArray(lookupResult)) {
+      return res.status(404).send("No results found. Please try another query.");
     }
 
-    try {
-        const lookupResult = await scrapeGoogleSearch(query);
-        console.log("Scraped URLs:", lookupResult);
+    // Modify the prompt to instruct the AI
+    const prompt = `You are Infintium. You have two purposes. If the user prompt is a math problem, solve it until it is COMPLETELY simplified. If it is a question, answer it with your own knowledge. If it is an item, such as a toaster, song, or anything that is a statement, act like Wikipedia and provide as much information as possible.`;
 
-        if (!lookupResult || !lookupResult.length) {
-            return res.status(404).send("No results found. Please try another query.");
-        }
+    // Generate AI content using the modified prompt
+    const result = await model.generateContent(prompt);
+    const markdownContent = markdown.render(result.response.text());
 
-        // Generate AI content using the modified prompt
-        const prompt = `You are Infintium. You have two purposes. If the user prompt is a math problem, solve it until it is COMPLETELY simplified. If it is a question, answer it with your own knowledge. If it is an item, such as a toaster, song, or anything that is a statement, act like Wikipedia and provide as much information as possible. USER PROMPT: ${query}`;
-        const result = await model.generateContent(prompt);
-        const markdownContent = markdown.render(result.response.text());
+    // Load the HTML template
+    let articleHtml = fs.readFileSync(path.join(__dirname, 'views/template.html'), 'utf8');
 
-        // Load the HTML template
-        let articleHtml = fs.readFileSync(path.join(__dirname, 'views/template.html'), 'utf8');
+    // Replace placeholders with the search query and AI content
+    articleHtml = articleHtml.replace(/{{title}}/g, query);
+    articleHtml = articleHtml.replace(/{{content}}/g, markdownContent);
+    
+    // Create a list of URLs for the article
+    const urlList = lookupResult.map(url => `<li><a href="${url}" target="_blank">${url}</a></li>`).join('');
+    articleHtml = articleHtml.replace(/{{urls}}/g, urlList);
 
-        // Replace placeholders with the search query and AI content
-        articleHtml = articleHtml.replace(/{{title}}/g, query);
-        articleHtml = articleHtml.replace(/{{content}}/g, markdownContent);
-        
-        // Create a list of URLs for the article
-        const urlList = lookupResult.map(url => `<li><a href="${url}" target="_blank">${url}</a></li>`).join('');
-        articleHtml = articleHtml.replace(/{{urls}}/g, urlList);
+    // Save the generated HTML file
+    fs.writeFileSync(filePath, articleHtml);
 
-        // Save the generated HTML file
-        fs.writeFileSync(filePath, articleHtml);
-
-        // Redirect to the new article page
-        res.redirect(`/articles/${sanitizedQuery}`);
-    } catch (error) {
-        console.error("Error during the search process:", error.message);
-        res.status(500).send("An unexpected error occurred: " + error.message);
-    }
+    // Redirect to the new article page
+    res.redirect(`/articles/${sanitizedQuery}`);
+  } catch (error) {
+    console.error("Error during the search process:", error.message);
+    res.status(500).send("An unexpected error occurred: " + error.message);
+  }
 });
 
 // Serve suggestions for the autocomplete feature
