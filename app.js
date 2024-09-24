@@ -97,8 +97,11 @@ const scrapeGoogleSearch = async (query) => {
       }
     });
 
+    // Debug log to check the URLs collected
+    console.log("Collected URLs:", links);
+
     // Cache the result for 24 hours
-    searchCache.set(query, links); // Store the actual links
+    searchCache.set(query, links);
     setTimeout(() => searchCache.delete(query), 24 * 60 * 60 * 1000); // Invalidate cache after 24 hours
 
     return links; // Return an array of links
@@ -133,11 +136,19 @@ app.post('/search', limiter, async (req, res) => {
   try {
     // Scrape information before generating the content
     const lookupResult = await scrapeGoogleSearch(query);
-    console.log("Scraped URLs:", lookupResult);
+    console.log("Scraped URLs:", lookupResult); // Log the scraped URLs
 
     // Ensure lookupResult is an array
-    if (!Array.isArray(lookupResult)) {
-      return res.status(404).send("No results found. Please try another query.");
+    if (!Array.isArray(lookupResult) || lookupResult.length === 0) {
+      // Provide an error response and include a message
+      const errorMsg = "No results found from Google. Please try a different query.";
+      const articleHtml = fs.readFileSync(path.join(__dirname, 'views/template.html'), 'utf8')
+        .replace(/{{title}}/g, query)
+        .replace(/{{content}}/g, "No content generated as there were no URLs.")
+        .replace(/{{urls}}/g, `<li>${errorMsg}</li>`); // Display error message in place of URLs
+
+      fs.writeFileSync(filePath, articleHtml); // Save the HTML with error message
+      return res.redirect(`/articles/${sanitizedQuery}`);
     }
 
     // Modify the prompt to instruct the AI
@@ -156,6 +167,7 @@ app.post('/search', limiter, async (req, res) => {
     
     // Create a list of URLs for the article
     const urlList = lookupResult.map(url => `<li><a href="${url}" target="_blank">${url}</a></li>`).join('');
+    console.log("Generated URL List:", urlList); // Log the generated URL list
     articleHtml = articleHtml.replace(/{{urls}}/g, urlList);
 
     // Save the generated HTML file
@@ -165,7 +177,7 @@ app.post('/search', limiter, async (req, res) => {
     res.redirect(`/articles/${sanitizedQuery}`);
   } catch (error) {
     console.error("Error during the search process:", error.message);
-    res.status(500).send("An unexpected error occurred: " + error.message);
+    res.status(500).send("An unexpected error occurred: " + error.message + "<br><pre>" + fs.readFileSync(__filename, 'utf8') + "</pre>"); // Send the JS file content
   }
 });
 
@@ -201,11 +213,11 @@ app.get('/articles/:article', (req, res) => {
   if (fs.existsSync(filePath)) {
     res.sendFile(filePath);
   } else {
-    res.redirect('/');
+    res.status(404).send("Article not found.");
   }
 });
 
 // Start the server
 app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`Server is running on http://localhost:${PORT}`);
 });
