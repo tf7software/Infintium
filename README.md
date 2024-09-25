@@ -1,5 +1,7 @@
 ![Infintium logo.](https://github.com/tf7software/Infintium/blob/8720261aa87b47854c75f106c0688087143856e4/GitimageHD.png)
 
+### Currently [Infintium](https://infintium.xyz/) is in beta. Some features may not be working. Contact us HERE for suggestions, comments, and issues.
+
 # [Infintium](https://infintium.xyz/)
 ## Infinite Searches, Infinite Learning.
 
