@@ -265,7 +265,7 @@ app.get('/articles/:article', async (req, res) => {
   // Add this to the generated HTML for the image gallery
   const imageGallery = images.map(img => `<img src="${img.thumbnail}" alt="${query} image">`).join('');
   
-  articleHtml = articleHtml.replace(/<!-- Images will be loaded here dynamically -->/g, imageGallery);
+  articleHtml = articleHtml.replace(/{{imageGallery}}/g, imageGallery);
 
   // Save the generated HTML file
   fs.writeFileSync(filePath, articleHtml);
