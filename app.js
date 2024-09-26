@@ -26,6 +26,11 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'views/index.html'));
 });
 
+// Serve homepage
+app.get('/snake', (req, res) => {
+  res.sendFile(path.join(__dirname, 'views/snake.html'));
+});
+
 // In-memory cache for search results
 const searchCache = new Map();
 
