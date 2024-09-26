@@ -95,6 +95,35 @@ const scrapeSerpApiSearch = async (query) => {
   }
 };
 
+// Function to scrape images from SerpAPI
+const scrapeSerpApiImages = async (query) => {
+  if (searchCache.has(query)) {
+    console.log("Serving images from cache");
+    return searchCache.get(query);
+  }
+
+  const apiKey = process.env.SERPAPI_API_KEY; // Add your SerpAPI key in the .env file
+  const url = `https://serpapi.com/search.json?engine=google_images&q=${query}&api_key=${apiKey}`;
+
+  try {
+    const { data } = await axios.get(url);
+    const images = data.images_results.slice(0, 10).map(img => ({
+      thumbnail: img.thumbnail,
+      original: img.original
+    }));
+
+    // Cache the result for 24 hours
+    searchCache.set(query, images);
+    setTimeout(() => searchCache.delete(query), 24 * 60 * 60 * 1000); // Invalidate cache after 24 hours
+
+    return images; // Return image objects (thumbnail and original)
+  } catch (error) {
+    console.error("Error scraping SerpAPI images:", error);
+    return []; // Return an empty array in case of error
+  }
+};
+
+
 // Rate limiter to prevent too many requests
 const limiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 minute window
