@@ -70,7 +70,6 @@ const scrapeSerpApiSearch = async (query) => {
   const formattedQuery = encodeURIComponent(query);
   const url = `https://serpapi.com/search.json?q=${formattedQuery}&api_key=${apiKey}`;
 
-
   try {
     const { data } = await axios.get(url);
 
@@ -189,16 +188,60 @@ app.get('/suggest', (req, res) => {
   });
 });
 
-// Serve the generated article pages
-app.get('/articles/:article', (req, res) => {
+// Serve the generated article pages or create them if they don't exist
+app.get('/articles/:article', async (req, res) => {
   const article = req.params.article;
   const filePath = path.join(__dirname, 'public/articles', `${article}.html`);
 
   // Check if the file exists
   if (fs.existsSync(filePath)) {
+    return res.sendFile(filePath);
+  }
+
+  try {
+    // If the file does not exist, generate the article content
+    const query = article.replace(/-/g, ' '); // Convert the article name back to a readable format
+
+    // Scrape information from SerpAPI
+    const lookupResult = await scrapeSerpApiSearch(query);
+    
+    if (!Array.isArray(lookupResult) || lookupResult.length === 0) {
+      // If no results found, send an error page
+      const errorMsg = "No content found for this article.";
+      const articleHtml = fs.readFileSync(path.join(__dirname, 'views/template.html'), 'utf8')
+        .replace(/{{title}}/g, query)
+        .replace(/{{content}}/g, "No content generated as there were no URLs.")
+        .replace(/{{urls}}/g, `<li>${errorMsg}</li>`);
+      fs.writeFileSync(filePath, articleHtml);
+      return res.sendFile(filePath);
+    }
+
+    // Modify the prompt to instruct the AI
+    const prompt = `You are Infintium. You have two purposes. If the user prompt is a math problem, solve it until it is COMPLETELY simplified. If it is a question, answer it with your own knowledge. If it is an item, such as a toaster, song, or anything that is a statement, act like Wikipedia and provide as much information as possible. USER PROMPT: ${query}`;
+
+    // Generate AI content
+    const result = await model.generateContent(prompt);
+    const markdownContent = markdown.render(result.response.text());
+
+    // Load the HTML template
+    let articleHtml = fs.readFileSync(path.join(__dirname, 'views/template.html'), 'utf8');
+
+    // Replace placeholders with the search query and AI content
+    articleHtml = articleHtml.replace(/{{title}}/g, query);
+    articleHtml = articleHtml.replace(/{{content}}/g, markdownContent);
+
+    // Create a list of URLs for the article
+    const urlList = lookupResult.map(url => `<li><a href="${url}" target="_blank">${url}</a></li>`).join('');
+    articleHtml = articleHtml.replace(/{{urls}}/g, urlList);
+
+    // Save the generated HTML file
+    fs.writeFileSync(filePath, articleHtml);
+
+    // Serve the newly created article
     res.sendFile(filePath);
-  } else {
-    res.status(404).send("Article not found.");
+  } catch (error) {
+    console.error("Error generating the article:", error);
+    res.status(500).send("An unexpected error occurred: " + error.message);
   }
 });
 
