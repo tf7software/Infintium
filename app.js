@@ -259,6 +259,24 @@ app.get('/articles/:article', async (req, res) => {
     articleHtml = articleHtml.replace(/{{title}}/g, query);
     articleHtml = articleHtml.replace(/{{content}}/g, markdownContent);
 
+    try {
+  const images = await scrapeSerpApiImages(query); // Scrape images for the article
+  
+  // Add this to the generated HTML for the image gallery
+  const imageGallery = images.map(img => `<img src="${img.thumbnail}" alt="${query} image">`).join('');
+  
+  articleHtml = articleHtml.replace(/<!-- Images will be loaded here dynamically -->/g, imageGallery);
+
+  // Save the generated HTML file
+  fs.writeFileSync(filePath, articleHtml);
+  
+  res.sendFile(filePath);
+} catch (error) {
+  console.error("Error generating the article:", error);
+  res.status(500).send("An unexpected error occurred: " + error.message);
+}
+
+
     // Create a list of URLs for the article
     const urlList = lookupResult.map(url => `<li><a href="${url}" target="_blank">${url}</a></li>`).join('');
     articleHtml = articleHtml.replace(/{{urls}}/g, urlList);
