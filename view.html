@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infintium View</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        h1 {
+            text-align: center;
+        }
+        textarea {
+            width: 100%;
+            height: 200px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            padding: 10px;
+        }
+        button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        input[type="file"] {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Infintium View</h1>
+    <input type="file" id="fileInput" accept=".html, .css, .js" multiple />
+    <textarea id="htmlInput" placeholder="Paste HTML code here..."></textarea>
+    <textarea id="cssInput" placeholder="Paste CSS code here..."></textarea>
+    <textarea id="jsInput" placeholder="Paste JavaScript code here..."></textarea>
+    <button id="viewButton">View</button>
+
+    <script>
+        document.getElementById('viewButton').addEventListener('click', function() {
+            const htmlContent = document.getElementById('htmlInput').value;
+            const cssContent = document.getElementById('cssInput').value;
+            const jsContent = document.getElementById('jsInput').value;
+            const fileInput = document.getElementById('fileInput');
+
+            // Create a new about:blank window
+            const newWindow = window.open('about:blank');
+
+            // Create the content of the new window
+            newWindow.document.open();
+            newWindow.document.write(`
+                <html>
+                <head>
+                    <style>${cssContent}</style>
+                </head>
+                <body>
+                    ${htmlContent}
+                    <script>${jsContent}<\/script>
+                </body>
+                </html>
+            `);
+            newWindow.document.close();
+        });
+
+        // Handle file upload
+        document.getElementById('fileInput').addEventListener('change', function(event) {
+            const files = event.target.files;
+            const fileReaders = [];
+
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const reader = new FileReader();
+
+                reader.onload = function(e) {
+                    if (file.type === 'text/html') {
+                        document.getElementById('htmlInput').value = e.target.result;
+                    } else if (file.type === 'text/css') {
+                        document.getElementById('cssInput').value = e.target.result;
+                    } else if (file.type === 'text/javascript') {
+                        document.getElementById('jsInput').value = e.target.result;
+                    }
+                };
+
+                reader.readAsText(file);
+                fileReaders.push(reader);
+            }
+        });
+    </script>
+</body>
+</html>
