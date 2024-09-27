@@ -30,6 +30,11 @@ app.get('/pacman', (req, res) => {
   res.sendFile(path.join(__dirname, 'views/pacman.html'));
 });
 
+app.get('/view', (req, res) => {
+  res.sendFile(path.join(__dirname, 'views/view.html'));
+});
+
+
 
 // Serve homepage
 app.get('/snake', (req, res) => {
