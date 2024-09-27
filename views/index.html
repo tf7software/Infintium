@@ -19,13 +19,41 @@
       <input type="text" name="query" id="searchInput" placeholder="Search..." autocomplete="off">
       <button type="submit">Search</button>
     </form>
-  tions" class="suggestions-list"></ul> <!-- Moved suggestions list below the form -->
+  
+    <select id="mathSymbolsDropdown">
+      <option value="">Math Symbols</option>
+      <option value="+">+</option>
+      <option value="-">-</option>
+      <option value="*">*</option>
+      <option value="/">/</option>
+      <option value="(">(</option>
+      <option value=")">)</option>
+      <option value="x">x</option>
+      <option value="y">y</option>
+      <option value="^">^</option>
+      <option value="=">=</option>
+      <option value="sqrt(">√</option>
+      <option value="≥">≥</option>
+      <option value="≤">≤</option>
+      <option value="^2">x²</option>
+      <option value="π">π</option>
+      <option value="e">e</option>
+      <option value="log(">log</option>
+      <option value="sin(">sin</option>
+      <option value="cos(">cos</option>
+      <option value="tan(">tan</option>
+      <option value="ln(">ln</option>
+      <option value="x^y">x^y</option>
+    </select>
+   
+    
+    <ul id="suggestions" class="suggestions-list"></ul> <!-- Moved suggestions list below the form -->
   </div>
   <p>Infinite Searches, Infinite Learning.</p>
-  <p style="color:gray;">Ver. 0.91.7</p>
+  <p style="color:gray;">Ver. 0.99.8</p>
   <a href="https://github.com/tf7software/Infintium">GitHub</a>
   <a href="about.html">About</a>
-  <p style="color:Silver;">P.S. Also try <a href="https://infintium.xyz/algebra">Infintium Algebra</a> for quick solving!</p>
+  <p style="color:Silver;">P.S. Also try entering algebra problems for quick solving!</p>
 
   <script>
     // Append selected math symbol to the search input field

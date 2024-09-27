@@ -1,6 +1,7 @@
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
+const markdown = require('markdown-it')();
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const axios = require('axios');
 const rateLimit = require('express-rate-limit');
@@ -8,7 +9,7 @@ const validator = require('validator');
 require('dotenv').config();
 
 const app = express();
-const PORT = 80; // Change the port if needed
+const PORT = 80;
 
 // Initialize Google Generative AI
 const genAI = new GoogleGenerativeAI(process.env.API_KEY);
@@ -19,74 +20,20 @@ app.use(express.static('public'));
 
 // Parse URL-encoded bodies (form submissions)
 app.use(express.urlencoded({ extended: true }));
-app.use(express.json()); // To parse JSON in POST requests
-
-// Rate limiter to prevent too many requests
-const limiter = rateLimit({
-  windowMs: 1 * 60 * 1000, // 1 minute window
-  max: 10, // limit each IP to 10 requests per minute
-  message: "Too many requests, please try again later.",
-});
 
 // Serve homepage
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'views/index.html'));
 });
 
-// Serve the Algebra Calculator page
-app.get('/algebra', (req, res) => {
-  res.sendFile(path.join(__dirname, 'views/algebra.html'));
+app.get('/pacman', (req, res) => {
+  res.sendFile(path.join(__dirname, 'views/pacman.html'));
 });
 
-// Function to sanitize scraped data
-const sanitizeScrapedData = (text) => {
-  return text.replace(/[\n\r]/g, ' ').trim(); // Remove newlines, trim whitespace
-};
 
-// Function to scrape search results from SerpAPI
-const scrapeSerpApiSearch = async (query) => {
-  const apiKey = process.env.SERPAPI_API_KEY; // Add your SerpAPI key in the .env file
-  const formattedQuery = encodeURIComponent(query);
-  const url = `https://serpapi.com/search.json?q=${formattedQuery}&api_key=${apiKey}`;
-
-  try {
-    const { data } = await axios.get(url);
-
-    // Check if the response contains organic_results
-    if (!data.organic_results || !Array.isArray(data.organic_results)) {
-      console.error("No organic results found in the response.");
-      return [];
-    }
-
-    const links = data.organic_results.map(result => result.link).filter(link => link && link.startsWith('http'));
-
-    return links; // Return an array of links
-  } catch (error) {
-    console.error("Error scraping SerpAPI:", error);
-    return []; // Return an empty array in case of error
-  }
-};
-
-// Handle Algebra calculation requests (AJAX)
-app.post('/algebra-calculate', async (req, res) => {
-  let query = req.body.query;
-
-  // Sanitize user input
-  query = validator.escape(query);
-
-  try {
-    // Modify the prompt for Algebra problem solving
-    const prompt = `Solve the following algebra problem step-by-step and simplify completely: ${query}`;
-
-    // Generate AI content using Google Generative AI model
-    const result = await model.generateContent(prompt);
-
-    // Send the AI-generated content directly back to the client
-    res.send(`<h2>Solution</h2><p>${result.response.text()}</p>`);
-  } catch (error) {
-    console.error("Error during algebra processing:", error.message);
-    res.status(500).send("An unexpected error occurred while solving the algebra problem.");
-  }
+// Serve homepage
+app.get('/snake', (req, res) => {
+  res.sendFile(path.join(__dirname, 'views/snake.html'));
 });
 
 // In-memory cache for search results
@@ -116,104 +63,233 @@ const deleteArticlesFolder = () => {
 // Schedule the deleteArticlesFolder function to run every 24 hours
 setInterval(deleteArticlesFolder, 24 * 60 * 60 * 1000); // 24 hours in milliseconds
 
+// Function to sanitize scraped data
+const sanitizeScrapedData = (text) => {
+  return text.replace(/[\n\r]/g, ' ').trim(); // Remove newlines, trim whitespace
+};
+
+// Function to scrape search results from SerpAPI
+const scrapeSerpApiSearch = async (query) => {
+  if (searchCache.has(query)) {
+    console.log("Serving from cache");
+    return searchCache.get(query);
+  }
+
+  const apiKey = process.env.SERPAPI_API_KEY;
+  const formattedQuery = encodeURIComponent(query);
+  const url = `https://serpapi.com/search.json?q=${formattedQuery}&api_key=${apiKey}`;
+
+  try {
+    const { data } = await axios.get(url);
+
+    if (!data.organic_results || !Array.isArray(data.organic_results)) {
+      console.error("No organic results found in the response.");
+      return [];
+    }
+
+    const links = data.organic_results.map(result => result.link).filter(link => link && link.startsWith('http'));
+    console.log("Collected URLs:", links);
+
+    // Cache the result for 24 hours
+    searchCache.set(query, links);
+    setTimeout(() => searchCache.delete(query), 24 * 60 * 60 * 1000);
+
+    return links;
+  } catch (error) {
+    console.error("Error scraping SerpAPI:", error);
+    return [];
+  }
+};
+
+// Function to scrape images from SerpAPI
+const scrapeSerpApiImages = async (query) => {
+  if (searchCache.has(query)) {
+    console.log("Serving images from cache");
+    return searchCache.get(query);
+  }
+
+  const apiKey = process.env.SERPAPI_API_KEY;
+  const url = `https://serpapi.com/search.json?engine=google_images&q=${query}&api_key=${apiKey}`;
+
+  try {
+    const { data } = await axios.get(url);
+    const images = data.images_results.slice(0, 10).map(img => ({
+      thumbnail: img.thumbnail,
+      original: img.original
+    }));
+
+    // Cache the result for 24 hours
+    searchCache.set(query, images);
+    setTimeout(() => searchCache.delete(query), 24 * 60 * 60 * 1000);
+
+    return images;
+  } catch (error) {
+    console.error("Error scraping SerpAPI images:", error);
+    return [];
+  }
+};
+
+// Rate limiter to prevent too many requests
+const limiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute window
+  max: 10, // limit each IP to 10 requests per minute
+  message: "Too many requests, please try again later.",
+});
+
 // Handle search form submissions
 app.post('/search', limiter, async (req, res) => {
   let query = req.body.query;
 
-  // Sanitize user input using validator
   query = validator.escape(query);
 
   const sanitizedQuery = query.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').trim().replace(/\s+/g, '-');
   const filePath = path.join(__dirname, 'public/articles', `${sanitizedQuery}.html`);
 
-  // Check if the article already exists
   if (fs.existsSync(filePath)) {
     return res.redirect(`/articles/${sanitizedQuery}`);
   }
 
   try {
-    // Scrape information from SerpAPI
     const lookupResult = await scrapeSerpApiSearch(query);
+    console.log("Scraped URLs:", lookupResult);
 
-    // Ensure lookupResult is an array
     if (!Array.isArray(lookupResult) || lookupResult.length === 0) {
-      // Provide an error response and include a message
       const errorMsg = "No results found from SerpAPI. Please try a different query.";
       const articleHtml = fs.readFileSync(path.join(__dirname, 'views/template.html'), 'utf8')
         .replace(/{{title}}/g, query)
         .replace(/{{content}}/g, "No content generated as there were no URLs.")
-        .replace(/{{urls}}/g, `<li>${errorMsg}</li>`); // Display error message in place of URLs
+        .replace(/{{urls}}/g, `<li>${errorMsg}</li>`);
 
-      fs.writeFileSync(filePath, articleHtml); // Save the HTML with error message
+      fs.writeFileSync(filePath, articleHtml);
       return res.redirect(`/articles/${sanitizedQuery}`);
     }
 
-    // Modify the prompt to instruct the AI
     const prompt = `You are Infintium. You have two purposes. If the user prompt is a math problem, solve it until it is COMPLETELY simplified. If it is a question, answer it with your own knowledge. If it is an item, such as a toaster, song, or anything that is a statement, act like Wikipedia and provide as much information as possible. USER PROMPT: ${query}`;
 
-    // Generate AI content using Google Generative AI model
     const result = await model.generateContent(prompt);
-    const markdownContent = result.response.text(); // Use AI response as the content
+    const markdownContent = markdown.render(result.response.text());
 
-    // Load the HTML template
     let articleHtml = fs.readFileSync(path.join(__dirname, 'views/template.html'), 'utf8');
-
-    // Replace placeholders with the search query and AI content
     articleHtml = articleHtml.replace(/{{title}}/g, query);
     articleHtml = articleHtml.replace(/{{content}}/g, markdownContent);
-    
-    // Create a list of URLs for the article
+
     const urlList = lookupResult.map(url => `<li><a href="${url}" target="_blank">${url}</a></li>`).join('');
+    console.log("Generated URL List:", urlList);
     articleHtml = articleHtml.replace(/{{urls}}/g, urlList);
 
-    // Save the generated HTML file
-    fs.writeFileSync(filePath, articleHtml);
+    try {
+      const images = await scrapeSerpApiImages(query);
+      const imageGallery = images.length > 0
+        ? images.map(img => `<img src="${img.thumbnail}" alt="${query} image">`).join('')
+        : "No images available";
 
-    // Redirect to the new article page
-    res.redirect(`/articles/${sanitizedQuery}`);
+      articleHtml = articleHtml.replace(/{{imageGallery}}/g, imageGallery);
+
+      fs.writeFileSync(filePath, articleHtml);
+      res.redirect(`/articles/${sanitizedQuery}`);
+    } catch (imageError) {
+      console.error("Error generating the image gallery:", imageError);
+      res.status(500).send("Error generating the image gallery.");
+    }
   } catch (error) {
     console.error("Error during the search process:", error.message);
     res.status(500).send("An unexpected error occurred: " + error.message);
   }
 });
 
-// Serve the generated article pages
-app.get('/articles/:article', (req, res) => {
-  const article = req.params.article;
-  const filePath = path.join(__dirname, 'public/articles', `${article}.html`);
-
-  // Check if the file exists
-  if (fs.existsSync(filePath)) {
-    res.sendFile(filePath);
-  } else {
-    res.status(404).send("Article not found.");
-  }
-});
-
 // Serve suggestions for the autocomplete feature
 app.get('/suggest', (req, res) => {
-  const query = req.query.q.toLowerCase().replace(/-/g, ' '); // Treat dashes as spaces
+  const query = req.query.q.toLowerCase().replace(/-/g, ' ');
   const articlesDir = path.join(__dirname, 'public/articles');
 
-  // Read all files in the ARTICLES directory
   fs.readdir(articlesDir, (err, files) => {
     if (err) {
       return res.status(500).send([]);
     }
 
-    // Filter files that match the query
     const suggestions = files
       .filter(file => {
         const filename = file.replace('.html', '').toLowerCase();
-        return filename.includes(query); // Check against filename
+        return filename.includes(query);
       })
-      .map(file => file.replace('.html', '')); // Remove .html extension
+      .map(file => file.replace('.html', ''));
 
     res.send(suggestions);
   });
 });
 
-// Start the server
+// Serve the generated article pages or create them if they don't exist
+// Serve the generated article pages or create them if they don't exist
+app.get('/articles/:article', async (req, res) => {
+  const article = req.params.article;
+  const filePath = path.join(__dirname, 'public/articles', `${article}.html`);
+
+  // Check if the file exists
+  if (fs.existsSync(filePath)) {
+    return res.sendFile(filePath);
+  }
+
+  try {
+    // Convert the article name back to a readable format
+    const query = article.replace(/-/g, ' '); 
+
+    // Scrape information from SerpAPI
+    const lookupResult = await scrapeSerpApiSearch(query);
+    
+    // Check if any results were found
+    if (!Array.isArray(lookupResult) || lookupResult.length === 0) {
+      const errorMsg = "No content found for this article.";
+      const articleHtml = fs.readFileSync(path.join(__dirname, 'views/template.html'), 'utf8')
+        .replace(/{{title}}/g, query)
+        .replace(/{{content}}/g, "No content generated as there were no URLs.")
+        .replace(/{{urls}}/g, `<li>${errorMsg}</li>`);
+      fs.writeFileSync(filePath, articleHtml);
+      return res.sendFile(filePath);
+    }
+
+    // Generate a prompt for the AI content generation
+    const prompt = `You are Infintium. You have two purposes. If the user prompt is a math problem, solve it until it is COMPLETELY simplified. If it is a question, answer it with your own knowledge. If it is an item, such as a toaster, song, or anything that is a statement, act like Wikipedia and provide as much information as possible. USER PROMPT: ${query}`;
+
+    // Generate AI content using the prompt
+    const result = await model.generateContent(prompt);
+    const markdownContent = markdown.render(result.response.text());
+
+    // Load the HTML template
+    let articleHtml = fs.readFileSync(path.join(__dirname, 'views/template.html'), 'utf8');
+    
+    // Replace placeholders with the search query and AI content
+    articleHtml = articleHtml.replace(/{{title}}/g, query);
+    articleHtml = articleHtml.replace(/{{content}}/g, markdownContent);
+
+    // Create a list of URLs for the article
+    const urlList = lookupResult.map(url => `<li><a href="${url}" target="_blank">${url}</a></li>`).join('');
+    articleHtml = articleHtml.replace(/{{urls}}/g, urlList);
+
+    // Generate the image gallery in the article HTML
+    try {
+      const images = await scrapeSerpApiImages(query);
+      
+      // Check if images were fetched successfully
+      const imageGallery = images.length > 0 
+        ? images.map(img => `<img src="${img.original}" alt="${query} image" style="width: 200px; height: auto; margin: 5px;">`).join('')
+        : '<p>No images available</p>';
+
+      articleHtml = articleHtml.replace(/{{imageGallery}}/g, imageGallery);
+
+      // Save the generated HTML file
+      fs.writeFileSync(filePath, articleHtml);
+      res.sendFile(filePath);
+    } catch (imageError) {
+      console.error("Error generating the image gallery:", imageError);
+      res.status(500).send("Error generating the image gallery.");
+    }
+  } catch (error) {
+    console.error("Error generating the article:", error);
+    res.status(500).send("An unexpected error occurred: " + error.message);
+  }
+});
+
+
 app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+  console.log(`Server is running on port ${PORT}`);
 });
