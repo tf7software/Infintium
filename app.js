@@ -114,7 +114,7 @@ const scrapeSerpApiImages = async (query) => {
   }
 
   const apiKey = process.env.SERPAPI_API_KEY;
-  const url = `https://serpapi.com/search.json?engine=google_images&q=${query}&api_key=${apiKey}`;
+  const url = `https://scrapi.pythonanywhere.com/search?q=${query}&n=10`;
 
   try {
     const { data } = await axios.get(url);
