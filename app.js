@@ -76,7 +76,6 @@ const sanitizeScrapedData = (text) => {
 };
 
 // Function to scrape search results from ScrAPI
-// Function to scrape search results from ScrAPI
 const scrapeScrAPI = async (query) => {
   if (searchCache.has(query)) {
     console.log("Serving from cache");
@@ -89,14 +88,14 @@ const scrapeScrAPI = async (query) => {
   try {
     const { data } = await axios.get(url);
 
-    // Check if the response format is valid
-    if (!Array.isArray(data)) {
+    // Check if the response format contains 'results'
+    if (!data.results || !Array.isArray(data.results)) {
       console.error("No results found in the response.");
       return [];
     }
 
     // Map over the results and extract the 'link' attribute
-    const links = data.map(result => result.link).filter(link => link && link.startsWith('http'));
+    const links = data.results.map(result => result.link).filter(link => link && link.startsWith('http'));
     console.log("Collected URLs:", links);
 
     // Cache the result for 24 hours
