@@ -118,16 +118,20 @@ const limiter = rateLimit({
 app.post('/search', limiter, async (req, res) => {
   let query = req.body.query;
 
+  // Escape user input to prevent XSS attacks
   query = validator.escape(query);
 
+  // Sanitize the query for use in filenames and URLs
   const sanitizedQuery = query.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').trim().replace(/\s+/g, '-');
   const filePath = path.join(__dirname, 'public/articles', `${sanitizedQuery}.html`);
 
+  // Check if the file already exists
   if (fs.existsSync(filePath)) {
     return res.redirect(`/articles/${sanitizedQuery}`);
   }
 
   try {
+    // Scrape URLs using ScrAPI
     const lookupResult = await scrapeScrAPI(query);
     console.log("Scraped URLs:", lookupResult);
 
@@ -142,8 +146,13 @@ app.post('/search', limiter, async (req, res) => {
       return res.redirect(`/articles/${sanitizedQuery}`);
     }
 
+    // Define mathematical symbols to check for
+    const mathSymbols = /[+\=\*\^√≥≤π]/;
+
+    // Create the prompt for the AI model
     const prompt = `You are Infintium. You have two purposes. If the user prompt is a math problem, solve it until it is COMPLETELY simplified. If it is a question, answer it with your own knowledge. If it is an item, such as a toaster, song, or anything that is a statement, act like Wikipedia and provide as much information as possible. USER PROMPT: ${query}`;
 
+    // Generate content using the AI model
     const result = await model.generateContent(prompt);
     const markdownContent = markdown.render(result.response.text());
 
@@ -151,10 +160,17 @@ app.post('/search', limiter, async (req, res) => {
     articleHtml = articleHtml.replace(/{{title}}/g, query);
     articleHtml = articleHtml.replace(/{{content}}/g, markdownContent);
 
-    const urlList = lookupResult.map(url => `<li><a href="${url}" target="_blank">${url}</a></li>`).join('');
-    console.log("Generated URL List:", urlList);
-    articleHtml = articleHtml.replace(/{{urls}}/g, urlList);
+    // Check if the query contains math symbols
+    if (mathSymbols.test(query)) {
+      // Replace the "Further reading" section with "No further reading - Math"
+      articleHtml = articleHtml.replace(/{{urls}}/g, '<li>No further reading - Math</li>');
+    } else {
+      // Generate the URL list if no math symbols are present
+      const urlList = lookupResult.map(url => `<li><a href="${url}" target="_blank">${url}</a></li>`).join('');
+      articleHtml = articleHtml.replace(/{{urls}}/g, urlList);
+    }
 
+    // Write the generated HTML to a file
     fs.writeFileSync(filePath, articleHtml);
     res.redirect(`/articles/${sanitizedQuery}`);
   } catch (error) {
