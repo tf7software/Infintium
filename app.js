@@ -117,7 +117,6 @@ const limiter = rateLimit({
   message: "Too many requests, please try again later.",
 });
 
-// Handle search form submissions
 app.post('/search', limiter, async (req, res) => {
   let query = req.body.query;
 
@@ -152,8 +151,9 @@ app.post('/search', limiter, async (req, res) => {
     // Define mathematical symbols to check for
     const mathSymbols = /[+\=\*\^√≥≤π]/;
 
-    // Create the prompt for the AI model
-    const prompt = `You are Infintium. You have two purposes. If the user prompt is a math problem, solve it until it is COMPLETELY simplified. If it is a question, answer it with your own knowledge. If it is an item, such as a toaster, song, or anything that is a statement, act like Wikipedia and provide as much information as possible. USER PROMPT: ${query}`;
+    // Append the scraped links to the prompt
+    const formattedLinks = lookupResult.map(url => `\n- ${url}`).join('');
+    const prompt = `You are Infintium. You have two purposes. If the user prompt is a math problem, solve it until it is COMPLETELY simplified. If it is a question, answer it with your own knowledge. If it is an item, such as a toaster, song, or anything that is a statement, act like Wikipedia and provide as much information as possible. USER PROMPT: ${query}. Here are some references you may find helpful (Never metion these links): ${formattedLinks}`;
 
     // Generate content using the AI model
     const result = await model.generateContent(prompt);
@@ -181,6 +181,7 @@ app.post('/search', limiter, async (req, res) => {
     res.status(500).send("An unexpected error occurred: " + error.message);
   }
 });
+
 
 // Serve suggestions for the autocomplete feature
 app.get('/suggest', (req, res) => {
