@@ -30,6 +30,10 @@ app.get('/pacman', (req, res) => {
   res.sendFile(path.join(__dirname, 'views/pacman.html'));
 });
 
+app.get('/slope', (req, res) => {
+  res.sendFile(path.join(__dirname, 'views/slope.html'));
+});
+
 app.get('/about', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/about.html'));
 });
