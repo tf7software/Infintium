@@ -18,9 +18,10 @@ const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 // Serve static files from the 'public' directory
 app.use(express.static('public'));
 
+// Serve any files from the 'nzp' directory
 app.use('/nzp', express.static(path.join(__dirname, 'nzp')));
 
-// Route to serve index.html when /nzp is accessed
+// Route to serve index.html when '/nzp' is accessed
 app.get('/nzp', (req, res) => {
   res.sendFile(path.join(__dirname, 'nzp', 'index.html'));
 });
