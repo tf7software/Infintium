@@ -17,4 +17,8 @@ Explore the world of knowledge with us - Infinite Searches, Infinite Learning.
 ## API
 
 ```https:/infintium.xyz/API/search?q={query}&lnks={true or false}```
+
 True for ScrAPI links, False for none
+
+***
+
