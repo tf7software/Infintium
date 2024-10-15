@@ -12,3 +12,9 @@ Our mission is to offer a limitless knowledge experience with infinite search po
 Infintium is completely free and open-source, meaning anyone can contribute, improve, and benefit from this platform. Whether you’re a student, researcher, or simply curious, Infintium is here to empower you with knowledge like never before.
 
 Explore the world of knowledge with us - Infinite Searches, Infinite Learning.
+
+***
+## API
+
+```https:/infintium.xyz/API/search?q={query}&lnks={true or false}```
+True for ScrAPI links, False for none
