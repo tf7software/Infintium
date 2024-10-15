@@ -195,6 +195,48 @@ app.post('/search', limiter, async (req, res) => {
   }
 });
 
+// Add the new API search route
+app.get('/API/search', async (req, res) => {
+  const query = req.query.q;
+  const lnks = req.query.lnks === 'true'; // Convert the query parameter to a boolean
+
+  // Escape user input to prevent XSS attacks
+  const escapedQuery = validator.escape(query);
+
+  try {
+    // Scrape URLs using ScrAPI if lnks is true
+    let lookupResult = [];
+    if (lnks) {
+      lookupResult = await scrapeScrAPI(escapedQuery);
+    }
+
+    // Define mathematical symbols to check for
+    const mathSymbols = /[+\=\*\^√≥≤π]/;
+
+    // Append the scraped links to the prompt if they exist
+    const formattedLinks = lookupResult.length > 0 ? lookupResult.map(url => `\n- ${url}`).join('') : '';
+    const prompt = `You are Infintium. You have two purposes. If the user prompt is a math problem, solve it until it is COMPLETELY simplified. If it is a question, answer it with your own knowledge. If it is an item, such as a toaster, song, or anything that is a statement, act like Wikipedia and provide as much information as possible. USER PROMPT: ${escapedQuery}. Here are some references you may find helpful (Never mention these links): ${formattedLinks}`;
+
+    // Generate content using the AI model
+    const result = await model.generateContent(prompt);
+    const responseText = result.response.text();
+
+    // Create a JSON response
+    const jsonResponse = {
+      query: escapedQuery,
+      answer: responseText,
+      links: lnks ? lookupResult : [] // Include links only if requested
+    };
+
+    // Send response in plain text JSON format
+    res.setHeader('Content-Type', 'application/json');
+    res.send(JSON.stringify(jsonResponse));
+  } catch (error) {
+    console.error("Error during the API search process:", error.message);
+    res.status(500).json({ error: "An unexpected error occurred: " + error.message });
+  }
+});
+
 
 // Serve suggestions for the autocomplete feature
 app.get('/suggest', (req, res) => {
