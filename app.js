@@ -199,6 +199,7 @@ app.post('/search', limiter, async (req, res) => {
 app.get('/API/search', async (req, res) => {
   const query = req.query.q;
   const lnks = req.query.lnks === 'true'; // Convert the query parameter to a boolean
+  const lnknum = parseInt(req.query.lnknum, 10) || 0; // Default to 0 if not provided
 
   // Escape user input to prevent XSS attacks
   const escapedQuery = validator.escape(query);
@@ -208,6 +209,10 @@ app.get('/API/search', async (req, res) => {
     let lookupResult = [];
     if (lnks) {
       lookupResult = await scrapeScrAPI(escapedQuery);
+      // Limit the number of links returned if lnknum is provided
+      if (lnknum > 0) {
+        lookupResult = lookupResult.slice(0, lnknum); // Slice to the specified number
+      }
     }
 
     // Define mathematical symbols to check for
@@ -236,6 +241,7 @@ app.get('/API/search', async (req, res) => {
     res.status(500).json({ error: "An unexpected error occurred: " + error.message });
   }
 });
+
 
 
 // Serve suggestions for the autocomplete feature
