@@ -6,10 +6,14 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 const axios = require('axios');
 const rateLimit = require('express-rate-limit');
 const validator = require('validator');
+const cors = require('cors');
 require('dotenv').config();
+
 
 const app = express();
 const PORT = 80;
+
+app.use(cors());
 
 // Initialize Google Generative AI
 const genAI = new GoogleGenerativeAI(process.env.API_KEY);
