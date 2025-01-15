@@ -100,7 +100,7 @@ const scrapeScrAPI = async (query) => {
   }
 
   const formattedQuery = encodeURIComponent(query);
-  const url = `https://scrapi.pythonanywhere.com/search?q=${formattedQuery}&n=10`;
+  const url = `https://scrapi.pythonanywhere.com/search?q=${formattedQuery}`;
 
   try {
     const { data } = await axios.get(url);
